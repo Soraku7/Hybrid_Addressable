@@ -8,6 +8,8 @@ using UnityEngine.ResourceManagement.AsyncOperations;
 
 public class CheckAssetUpdate : MonoBehaviour
 {
+    private AsyncOperationHandle<GameObject> _cubeInstanceHandle;
+
     private IEnumerator Start()
     {
         Debug.Log("=== Start CheckAssetUpdate ===");
@@ -42,7 +44,22 @@ public class CheckAssetUpdate : MonoBehaviour
         Debug.Log($"Load Cube Status = {cubeHandle.Status}");
         if (cubeHandle.Status == AsyncOperationStatus.Succeeded)
         {
-            Instantiate(cubeHandle.Result);
+            var go = Instantiate(cubeHandle.Result);
+            var renderer = go.GetComponent<Renderer>();
+            // if (renderer != null)
+            // {
+            //     var mat = new Material(Shader.Find("Standard"));
+            //     mat.color = Color.green;
+            //     renderer.sharedMaterial = mat;
+            // }
+
+            Debug.Log("sharedMaterial = " + renderer.sharedMaterial);
+            Debug.Log("material name = " + (renderer.sharedMaterial ? renderer.sharedMaterial.name : "NULL"));
+            Debug.Log("shader = " + (renderer.sharedMaterial && renderer.sharedMaterial.shader != null
+                ? renderer.sharedMaterial.shader.name
+                : "NULL"));
+
+            _cubeInstanceHandle = cubeHandle;
         }
 
         var dllHandle = Addressables.LoadAssetAsync<TextAsset>("HotUpdate.dll");
@@ -63,8 +80,15 @@ public class CheckAssetUpdate : MonoBehaviour
             method?.Invoke(null, null);
         }
 
-        Addressables.Release(cubeHandle);
         Addressables.Release(dllHandle);
         Addressables.Release(initHandle);
+    }
+
+    private void OnDestroy()
+    {
+        if (_cubeInstanceHandle.IsValid())
+        {
+            Addressables.ReleaseInstance(_cubeInstanceHandle);
+        }
     }
 }
